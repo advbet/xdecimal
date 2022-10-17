@@ -51,6 +51,10 @@ var DivisionPrecision = 16
 // silently lose precision.
 var MarshalJSONWithoutQuotes = false
 
+// TrimTrailingZeroes should be set to true if you want to the decimal string
+// representation to be in a format where trailing zeroes are discarded.
+var TrimTrailingZeroes = false
+
 // ExpMaxIterations specifies the maximum number of iterations needed to calculate
 // precise natural exponent value using ExpHullAbrham method.
 var ExpMaxIterations = 1000
@@ -68,6 +72,20 @@ var tenInt = big.NewInt(10)
 var twentyInt = big.NewInt(20)
 
 var factorials = []Decimal{New(1, 0)}
+
+// RoundRule is enum type for specifying rounding algorithm when decimal number
+// is scaled with loss of precision. List of supported rounding rules are listed
+// in `Round*` consts.
+type RoundRule int
+
+// List of supported rounding rules
+const (
+	RoundTruncate RoundRule = iota // Directed rounding towards zero
+	RoundFloor                     // Directed rounding towards positive infinity
+	RoundCeil                      // Directed rounding towards negative infinity
+	RoundMath                      // Round to nearest, on tie round away from zero
+	RoundBankers                   // Round to nearest, on tie round to even number
+)
 
 // Decimal represents a fixed-point decimal. It is immutable.
 // number = value * 10 ^ exp
@@ -116,12 +134,54 @@ func NewFromInt32(value int32) Decimal {
 	}
 }
 
+// MulInt calculates d * n value.
+func MulInt(value Decimal, n int) Decimal {
+	d := NewFromInt(int64(n))
+	return value.Mul(d)
+}
+
+// Round scales decimal value to an integer value with given exponent. On
+// exponent scale-down decimal value precision is preserved, on exponent
+// scale-up rounding with the given rounding rule is performed.
+func Round(value Decimal, exp int, rule RoundRule) Decimal {
+	// scale-down case
+	if exp <= int(value.Exponent()) {
+		return value.rescale(int32(exp))
+	}
+
+	switch rule {
+	case RoundBankers:
+		return value.RoundBank(-1 * int32(exp)).rescale(int32(exp))
+	case RoundMath:
+		return value.Round(-1 * int32(exp)).rescale(int32(exp))
+	case RoundFloor:
+		return value.RoundFloor(-1 * int32(exp)).rescale(int32(exp))
+	case RoundCeil:
+		return value.RoundCeil(-1 * int32(exp)).rescale(int32(exp))
+	default: // truncate the remainder
+		return value.rescale(int32(exp))
+	}
+}
+
+// ScaledVal scales decimal number to a given exponent and returns
+// internal number integer value. If given exponent is higher than internal
+// number exponent this function will lose truncated digits.
+func ScaledVal(d Decimal, exp int) int64 {
+	return d.rescale(int32(exp)).CoefficientInt64()
+}
+
 // NewFromBigInt returns a new Decimal from a big.Int, value * 10 ^ exp
 func NewFromBigInt(value *big.Int, exp int32) Decimal {
 	return Decimal{
 		value: new(big.Int).Set(value),
 		exp:   exp,
 	}
+}
+
+// NewFromRat returns a new Decimal from a big.Rat. The numerator and
+// denominator are divided and rounded to the given exponent.
+func NewFromRat(r *big.Rat, e int) Decimal {
+	return Round(NewFromBigInt(r.Num(), 0).Div(NewFromBigInt(r.Denom(), 0)), e, RoundTruncate)
 }
 
 // NewFromString returns a new Decimal from a string representation.
@@ -1015,7 +1075,7 @@ func (d Decimal) InexactFloat64() float64 {
 //
 //	-12.345
 func (d Decimal) String() string {
-	return d.string(true)
+	return d.string(TrimTrailingZeroes)
 }
 
 // StringFixed returns a rounded fixed-point string with places digits after
