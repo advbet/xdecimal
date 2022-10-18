@@ -40,21 +40,21 @@ import (
 )
 
 func main() {
-	price, err := decimal.NewFromString("136.02")
+	price, err := xdecimal.NewFromString("136.02")
 	if err != nil {
 		panic(err)
 	}
 
-	quantity := decimal.NewFromInt(3)
+	quantity := xdecimal.NewFromInt(3)
 
-	fee, _ := decimal.NewFromString(".035")
-	taxRate, _ := decimal.NewFromString(".08875")
+	fee, _ := xdecimal.NewFromString(".035")
+	taxRate, _ := xdecimal.NewFromString(".08875")
 
 	subtotal := price.Mul(quantity)
 
-	preTax := subtotal.Mul(fee.Add(decimal.NewFromFloat(1)))
+	preTax := subtotal.Mul(fee.Add(xdecimal.NewFromFloat(1)))
 
-	total := preTax.Mul(taxRate.Add(decimal.NewFromFloat(1)))
+	total := preTax.Mul(taxRate.Add(xdecimal.NewFromFloat(1)))
 
 	fmt.Println("Subtotal:", subtotal)                      // Subtotal: 408.06
 	fmt.Println("Pre-tax:", preTax)                         // Pre-tax: 422.3421
