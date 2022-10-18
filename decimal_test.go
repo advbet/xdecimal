@@ -19,11 +19,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func init() {
-	// This is left for test backwards compability
-	TrimTrailingZeroes = true
-}
-
 type testEnt struct {
 	float   float64
 	short   string

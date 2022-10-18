@@ -53,7 +53,7 @@ var MarshalJSONWithoutQuotes = false
 
 // TrimTrailingZeroes should be set to true if you want to the decimal string
 // representation to be in a format where trailing zeroes are discarded.
-var TrimTrailingZeroes = false
+var TrimTrailingZeroes = true
 
 // ExpMaxIterations specifies the maximum number of iterations needed to calculate
 // precise natural exponent value using ExpHullAbrham method.
