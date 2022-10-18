@@ -135,38 +135,14 @@ func NewFromInt32(value int32) Decimal {
 }
 
 // MulInt calculates d * n value.
-func MulInt(value Decimal, n int) Decimal {
-	d := NewFromInt(int64(n))
-	return value.Mul(d)
-}
-
-// Round scales decimal value to an integer value with given exponent. On
-// exponent scale-down decimal value precision is preserved, on exponent
-// scale-up rounding with the given rounding rule is performed.
-func Round(value Decimal, exp int, rule RoundRule) Decimal {
-	// scale-down case
-	if exp <= int(value.Exponent()) {
-		return value.rescale(int32(exp))
-	}
-
-	switch rule {
-	case RoundBankers:
-		return value.RoundBank(-1 * int32(exp)).rescale(int32(exp))
-	case RoundMath:
-		return value.Round(-1 * int32(exp)).rescale(int32(exp))
-	case RoundFloor:
-		return value.RoundFloor(-1 * int32(exp)).rescale(int32(exp))
-	case RoundCeil:
-		return value.RoundCeil(-1 * int32(exp)).rescale(int32(exp))
-	default: // truncate the remainder
-		return value.rescale(int32(exp))
-	}
+func (d Decimal) MulInt(n int) Decimal {
+	return NewFromInt(int64(n)).Mul(d)
 }
 
 // ScaledVal scales decimal number to a given exponent and returns
 // internal number integer value. If given exponent is higher than internal
 // number exponent this function will lose truncated digits.
-func ScaledVal(d Decimal, exp int) int64 {
+func (d Decimal) ScaledVal(exp int) int64 {
 	return d.rescale(int32(exp)).CoefficientInt64()
 }
 
@@ -181,7 +157,7 @@ func NewFromBigInt(value *big.Int, exp int32) Decimal {
 // NewFromRat returns a new Decimal from a big.Rat. The numerator and
 // denominator are divided and rounded to the given exponent.
 func NewFromRat(r *big.Rat, e int) Decimal {
-	return Round(NewFromBigInt(r.Num(), 0).Div(NewFromBigInt(r.Denom(), 0)), e, RoundTruncate)
+	return NewFromBigInt(r.Num(), 0).Div(NewFromBigInt(r.Denom(), 0)).RoundMath(e, RoundTruncate)
 }
 
 // NewFromString returns a new Decimal from a string representation.
@@ -475,6 +451,29 @@ func (d Decimal) Copy() Decimal {
 	return Decimal{
 		value: &(*d.value),
 		exp:   d.exp,
+	}
+}
+
+// RoundMath scales decimal value to an integer value with given exponent. On
+// exponent scale-down decimal value precision is preserved, on exponent
+// scale-up rounding with the given rounding rule is performed.
+func (d Decimal) RoundMath(exp int, rule RoundRule) Decimal {
+	// scale-down case
+	if exp <= int(d.Exponent()) {
+		return d.rescale(int32(exp))
+	}
+
+	switch rule {
+	case RoundBankers:
+		return d.RoundBank(-1 * int32(exp)).rescale(int32(exp))
+	case RoundMath:
+		return d.Round(-1 * int32(exp)).rescale(int32(exp))
+	case RoundFloor:
+		return d.RoundFloor(-1 * int32(exp)).rescale(int32(exp))
+	case RoundCeil:
+		return d.RoundCeil(-1 * int32(exp)).rescale(int32(exp))
+	default: // truncate the remainder
+		return d.rescale(int32(exp))
 	}
 }
 

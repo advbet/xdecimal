@@ -557,7 +557,7 @@ func TestMulInt(t *testing.T) {
 	}}
 
 	for _, test := range tests {
-		actual := MulInt(test.x, test.y)
+		actual := test.x.MulInt(test.y)
 		assert.Equal(
 			t,
 			test.expected,
@@ -567,7 +567,7 @@ func TestMulInt(t *testing.T) {
 	}
 }
 
-func TestRound(t *testing.T) {
+func TestRoundMath(t *testing.T) {
 	tests := []struct {
 		rule   RoundRule
 		num    string
@@ -620,7 +620,7 @@ func TestRound(t *testing.T) {
 		err = res.UnmarshalText([]byte(test.result))
 		assert.NoError(t, err)
 
-		result := Round(num, test.exp, test.rule)
+		result := num.RoundMath(test.exp, test.rule)
 
 		// Zero should never be compared with == or != directly, please use decimal.Equal or decimal.Cmp instead.
 		if result.IsZero() {
@@ -645,9 +645,9 @@ func TestRound(t *testing.T) {
 }
 
 func TestScaledVal(t *testing.T) {
-	assert.Equal(t, int64(12), ScaledVal(New(1234, -2), 0))
-	assert.Equal(t, int64(1234), ScaledVal(New(1234, -2), -2))
-	assert.Equal(t, int64(123400), ScaledVal(New(1234, -2), -4))
+	assert.Equal(t, int64(12), New(1234, -2).ScaledVal(0))
+	assert.Equal(t, int64(1234), New(1234, -2).ScaledVal(-2))
+	assert.Equal(t, int64(123400), New(1234, -2).ScaledVal(-4))
 }
 
 func TestNewFromBigIntWithExponent(t *testing.T) {
