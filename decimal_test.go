@@ -107,6 +107,12 @@ func init() {
 	}
 }
 
+func TestMain(m *testing.M) {
+	// Left for test backwards compability
+	TrimTrailingZeroes = true
+	m.Run()
+}
+
 func TestNewFromFloat(t *testing.T) {
 	for _, x := range testTable {
 		s := x.short
