@@ -157,7 +157,7 @@ func NewFromBigInt(value *big.Int, exp int32) Decimal {
 // NewFromRat returns a new Decimal from a big.Rat. The numerator and
 // denominator are divided and rounded to the given exponent.
 func NewFromRat(r *big.Rat, e int) Decimal {
-	return NewFromBigInt(r.Num(), 0).Div(NewFromBigInt(r.Denom(), 0)).RoundMath(e, RoundTruncate)
+	return NewFromBigInt(r.Num(), 0).Div(NewFromBigInt(r.Denom(), 0)).Round(e, RoundTruncate)
 }
 
 // NewFromString returns a new Decimal from a string representation.
@@ -454,10 +454,10 @@ func (d Decimal) Copy() Decimal {
 	}
 }
 
-// RoundMath scales decimal value to an integer value with given exponent. On
+// Round scales decimal value to an integer value with given exponent. On
 // exponent scale-down decimal value precision is preserved, on exponent
 // scale-up rounding with the given rounding rule is performed.
-func (d Decimal) RoundMath(exp int, rule RoundRule) Decimal {
+func (d Decimal) Round(exp int, rule RoundRule) Decimal {
 	// scale-down case
 	if exp <= int(d.Exponent()) {
 		return d.rescale(int32(exp))
@@ -467,7 +467,7 @@ func (d Decimal) RoundMath(exp int, rule RoundRule) Decimal {
 	case RoundBankers:
 		return d.RoundBank(-1 * int32(exp)).rescale(int32(exp))
 	case RoundMath:
-		return d.Round(-1 * int32(exp)).rescale(int32(exp))
+		return d.RoundMath(-1 * int32(exp)).rescale(int32(exp))
 	case RoundFloor:
 		return d.RoundFloor(-1 * int32(exp)).rescale(int32(exp))
 	case RoundCeil:
@@ -790,7 +790,7 @@ func (d Decimal) ExpHullAbrham(overallPrecision uint32) (Decimal, error) {
 		roundDigits = int32(currentPrecision)
 	}
 
-	res = res.Round(roundDigits)
+	res = res.RoundMath(roundDigits)
 
 	return res, nil
 }
@@ -814,7 +814,7 @@ func (d Decimal) ExpHullAbrham(overallPrecision uint32) (Decimal, error) {
 func (d Decimal) ExpTaylor(precision int32) (Decimal, error) {
 	// Note(mwoss): Implementation can be optimized by exclusively using big.Int API only
 	if d.IsZero() {
-		return Decimal{oneInt, 0}.Round(precision), nil
+		return Decimal{oneInt, 0}.RoundMath(precision), nil
 	}
 
 	var epsilon Decimal
@@ -863,7 +863,7 @@ func (d Decimal) ExpTaylor(precision int32) (Decimal, error) {
 		result = New(1, 0).DivRound(result, precision+1)
 	}
 
-	result = result.Round(precision)
+	result = result.RoundMath(precision)
 	return result, nil
 }
 
@@ -1090,7 +1090,7 @@ func (d Decimal) String() string {
 //	NewFromFloat(5.45).StringFixed(3) // output: "5.450"
 //	NewFromFloat(545).StringFixed(-1) // output: "550"
 func (d Decimal) StringFixed(places int32) string {
-	rounded := d.Round(places)
+	rounded := d.RoundMath(places)
 	return rounded.string(false)
 }
 
@@ -1118,14 +1118,14 @@ func (d Decimal) StringFixedCash(interval uint8) string {
 	return rounded.string(false)
 }
 
-// Round rounds the decimal to places decimal places.
+// RoundMath rounds the decimal to places decimal places.
 // If places < 0, it will round the integer part to the nearest 10^(-places).
 //
 // Example:
 //
-//	NewFromFloat(5.45).Round(1).String() // output: "5.5"
-//	NewFromFloat(545).Round(-1).String() // output: "550"
-func (d Decimal) Round(places int32) Decimal {
+//	NewFromFloat(5.45).RoundMath(1).String() // output: "5.5"
+//	NewFromFloat(545).RoundMath(-1).String() // output: "550"
+func (d Decimal) RoundMath(places int32) Decimal {
 	if d.exp == -places {
 		return d
 	}
@@ -1262,7 +1262,7 @@ func (d Decimal) RoundDown(places int32) Decimal {
 //	NewFromFloat(555).RoundBank(-1).String() // output: "560"
 func (d Decimal) RoundBank(places int32) Decimal {
 
-	round := d.Round(places)
+	round := d.RoundMath(places)
 	remainder := d.Sub(round).Abs()
 
 	half := New(5, -places-1)
@@ -1310,7 +1310,7 @@ func (d Decimal) RoundCash(interval uint8) Decimal {
 	}
 
 	// TODO: optimize those calculations to reduce the high allocations (~29 allocs).
-	return d.Mul(dVal).Round(0).Div(dVal).Truncate(2)
+	return d.Mul(dVal).RoundMath(0).Div(dVal).Truncate(2)
 }
 
 // Floor returns the nearest integer value less than or equal to d.

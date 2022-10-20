@@ -568,7 +568,7 @@ func TestMulInt(t *testing.T) {
 	}
 }
 
-func TestRoundMath(t *testing.T) {
+func TestRound(t *testing.T) {
 	tests := []struct {
 		rule   RoundRule
 		num    string
@@ -621,7 +621,7 @@ func TestRoundMath(t *testing.T) {
 		err = res.UnmarshalText([]byte(test.result))
 		assert.NoError(t, err)
 
-		result := num.RoundMath(test.exp, test.rule)
+		result := num.Round(test.exp, test.rule)
 
 		// Zero should never be compared with == or != directly, please use decimal.Equal or decimal.Cmp instead.
 		if result.IsZero() {
@@ -1260,7 +1260,7 @@ func TestDecimal_Ceil(t *testing.T) {
 	}
 }
 
-func TestDecimal_RoundAndStringFixed(t *testing.T) {
+func TestDecimal_RoundMathAndStringFixed(t *testing.T) {
 	type testData struct {
 		input         string
 		places        int32
@@ -1321,7 +1321,7 @@ func TestDecimal_RoundAndStringFixed(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		got := d.Round(test.places)
+		got := d.RoundMath(test.places)
 		if !got.Equal(expected) {
 			t.Errorf("Rounding %s to %d places, got %s, expected %s",
 				d, test.places, got, expected)
@@ -1800,7 +1800,7 @@ func TestDecimal_Uninitialized(t *testing.T) {
 		a.Mul(b),
 		a.Shift(0),
 		a.Div(New(1, -1)),
-		a.Round(2),
+		a.RoundMath(2),
 		a.Floor(),
 		a.Ceil(),
 		a.Truncate(2),
