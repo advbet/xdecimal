@@ -28,7 +28,7 @@ _Note:_ Decimal library can "only" represent numbers with a maximum of 2^31 digi
 
 ## Install
 
-Run `go get github.com/advbet/xdecimal`
+Run `go get github.com/advbet/xdecimal/v2`
 
 ## Requirements 
 
@@ -41,7 +41,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/advbet/xdecimal"
+	"github.com/advbet/xdecimal/v2"
 )
 
 func main() {
