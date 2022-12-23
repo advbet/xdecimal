@@ -449,7 +449,7 @@ func NewFromFloatWithExponent(value float64, exp int32) Decimal {
 func (d Decimal) Copy() Decimal {
 	d.ensureInitialized()
 	return Decimal{
-		value: &(*d.value),
+		value: d.value,
 		exp:   d.exp,
 	}
 }
