@@ -449,7 +449,7 @@ func NewFromFloatWithExponent(value float64, exp int32) Decimal {
 func (d Decimal) Copy() Decimal {
 	d.ensureInitialized()
 	return Decimal{
-		value: d.value,
+		value: new(big.Int).Set(d.value),
 		exp:   d.exp,
 	}
 }
@@ -1049,7 +1049,7 @@ func (d Decimal) Rat() *big.Rat {
 }
 
 // Float64 returns the nearest float64 value for d and a bool indicating
-// whether f represents d exactly.
+// whether modifier represents d exactly.
 // For more details, see the documentation for big.Rat.Float64
 func (d Decimal) Float64() (f float64, exact bool) {
 	return d.Rat().Float64()

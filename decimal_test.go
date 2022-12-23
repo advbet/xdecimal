@@ -797,19 +797,28 @@ func TestNewFromRat(t *testing.T) {
 }
 
 func TestCopy(t *testing.T) {
-	origin := New(1, 0)
-	cpy := origin.Copy()
+	t.Run("copied equals to original", func(t *testing.T) {
+		original := New(1, 0)
+		copied := original.Copy()
 
-	if cpy.Cmp(origin) != 0 {
-		t.Error("expecting copy and origin to be equals, but they are not")
-	}
+		assert.Equal(t, 0, copied.Cmp(original))
+	})
 
-	//change value
-	cpy = cpy.Add(New(1, 0))
+	t.Run("assigning new value to original do not modify copied value", func(t *testing.T) {
+		original := New(1, 0)
+		copied := original.Copy()
+		original = New(2, 0)
 
-	if cpy.Cmp(origin) == 0 {
-		t.Error("expecting copy and origin to have different values, but they are equal")
-	}
+		assert.Equal(t, -1, copied.Cmp(original))
+	})
+
+	t.Run("assigning new value to copied do not modify original value", func(t *testing.T) {
+		original := New(1, 0)
+		copied := original.Copy()
+		copied = copied.Add(New(1, 0))
+
+		assert.Equal(t, 1, copied.Cmp(original))
+	})
 }
 
 func TestJSON(t *testing.T) {
@@ -3060,7 +3069,7 @@ func TestDecimal_Coefficient(t *testing.T) {
 	}
 	co.Set(big.NewInt(0))
 	if d.IntPart() != 123 {
-		t.Error("Modifying coefficient modified Decimal; Got:", d)
+		t.Error("Modifying coefficient modifier Decimal; Got:", d)
 	}
 }
 
