@@ -3069,7 +3069,7 @@ func TestDecimal_Coefficient(t *testing.T) {
 	}
 	co.Set(big.NewInt(0))
 	if d.IntPart() != 123 {
-		t.Error("Modifying coefficient modifier Decimal; Got:", d)
+		t.Error("Modifying coefficient modified Decimal; Got:", d)
 	}
 }
 

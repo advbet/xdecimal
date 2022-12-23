@@ -1049,7 +1049,7 @@ func (d Decimal) Rat() *big.Rat {
 }
 
 // Float64 returns the nearest float64 value for d and a bool indicating
-// whether modifier represents d exactly.
+// whether f represents d exactly.
 // For more details, see the documentation for big.Rat.Float64
 func (d Decimal) Float64() (f float64, exact bool) {
 	return d.Rat().Float64()
