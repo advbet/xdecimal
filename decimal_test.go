@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/big"
 	"math/rand"
+	"os"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -108,9 +109,9 @@ func init() {
 }
 
 func TestMain(m *testing.M) {
-	// Left for test backwards compability
+	// Left for test backwards compatibility
 	TrimTrailingZeroes = true
-	m.Run()
+	os.Exit(m.Run())
 }
 
 func TestNewFromFloat(t *testing.T) {
@@ -256,11 +257,11 @@ func TestNewFromFormattedString(t *testing.T) {
 		ReplRegex *regexp.Regexp
 	}{
 		{"$10.99", "10.99", regexp.MustCompile("[$]")},
-		{"$ 12.1", "12.1", regexp.MustCompile("[$\\s]")},
+		{"$ 12.1", "12.1", regexp.MustCompile(`[$\s]`)},
 		{"$61,690.99", "61690.99", regexp.MustCompile("[$,]")},
 		{"1_000_000.00", "1000000.00", regexp.MustCompile("[_]")},
 		{"41,410.00", "41410.00", regexp.MustCompile("[,]")},
-		{"5200 USD", "5200", regexp.MustCompile("[USD\\s]")},
+		{"5200 USD", "5200", regexp.MustCompile(`[USD\s]`)},
 	} {
 		dFormatted, err := NewFromFormattedString(testCase.Formatted, testCase.ReplRegex)
 		if err != nil {
@@ -796,19 +797,28 @@ func TestNewFromRat(t *testing.T) {
 }
 
 func TestCopy(t *testing.T) {
-	origin := New(1, 0)
-	cpy := origin.Copy()
+	t.Run("copied equals to original", func(t *testing.T) {
+		original := New(1, 0)
+		copied := original.Copy()
 
-	if cpy.Cmp(origin) != 0 {
-		t.Error("expecting copy and origin to be equals, but they are not")
-	}
+		assert.Equal(t, 0, copied.Cmp(original))
+	})
 
-	//change value
-	cpy = cpy.Add(New(1, 0))
+	t.Run("assigning new value to original do not modify copied value", func(t *testing.T) {
+		original := New(1, 0)
+		copied := original.Copy()
+		original = New(2, 0)
 
-	if cpy.Cmp(origin) == 0 {
-		t.Error("expecting copy and origin to have different values, but they are equal")
-	}
+		assert.Equal(t, -1, copied.Cmp(original))
+	})
+
+	t.Run("assigning new value to copied do not modify original value", func(t *testing.T) {
+		original := New(1, 0)
+		copied := original.Copy()
+		copied = copied.Add(New(1, 0))
+
+		assert.Equal(t, 1, copied.Cmp(original))
+	})
 }
 
 func TestJSON(t *testing.T) {
@@ -828,14 +838,17 @@ func TestJSON(t *testing.T) {
 				doc.Amount.value.String(), doc.Amount.exp)
 		}
 
+		// make sure quoted marshalling works
+		MarshalJSONWithoutQuotes = false
 		out, err := json.Marshal(&doc)
 		if err != nil {
 			t.Errorf("error marshaling %+v: %v", doc, err)
 		} else if string(out) != docStr {
 			t.Errorf("expected %s, got %s", docStr, string(out))
 		}
+		MarshalJSONWithoutQuotes = true
 
-		// make sure unquoted marshalling works too
+		// make sure unquoted marshalling works
 		MarshalJSONWithoutQuotes = true
 		out, err = json.Marshal(&doc)
 		if err != nil {
