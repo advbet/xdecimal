@@ -4,7 +4,7 @@
 provide additional features that original package did not provide.
 
 Here are the notable differences:
-- Trailing zeroes are not removed by default
+- Trailing zeroes are not removed by default (except StringTrimZeros method, was introduced to do not mess with runtime variables when xdecimal is imported)
 - Zero value has exponent of 0
 - By default decimal is marshaled to JSON as a number
 
