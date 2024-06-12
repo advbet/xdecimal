@@ -1077,6 +1077,21 @@ func (d Decimal) String() string {
 	return d.string(TrimTrailingZeroes)
 }
 
+// StringTrimZeros returns the string representation of the decimal
+// with the fixed point, removing any trailing zeros.
+//
+// Example:
+//
+//	d := New(-12345, -3)
+//	println(d.String())
+//
+// Output:
+//
+//	-12.345
+func (d Decimal) StringTrimZeros() string {
+	return d.string(true)
+}
+
 // StringFixed returns a rounded fixed-point string with places digits after
 // the decimal point.
 //
