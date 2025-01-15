@@ -2032,13 +2032,6 @@ func RescalePair(d1 Decimal, d2 Decimal) (Decimal, Decimal) {
 	return d1, d2
 }
 
-func min(x, y int32) int32 {
-	if x >= y {
-		return y
-	}
-	return x
-}
-
 func unquoteIfQuoted(value interface{}) (string, error) {
 	var bytes []byte
 
