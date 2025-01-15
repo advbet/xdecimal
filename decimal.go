@@ -2036,10 +2036,17 @@ func safeFactorial(i int64) Decimal {
 	factorialsMu.RUnlock()
 
 	factorialsMu.Lock()
+	defer factorialsMu.Unlock()
+
+	// We need to re-check as we might have been waiting for the lock
+	// and the value might have been calculated in the meantime.
+	if len(factorials) >= int(i) && !factorials[i-1].IsZero() {
+		return factorials[i-1]
+	}
+
 	factorial := factorials[i-2].Mul(New(i, 0))
 	factorials = append(factorials, Zero)
 	factorials[i-1] = factorial
-	factorialsMu.Unlock()
 
 	return factorial
 }
