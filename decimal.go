@@ -25,6 +25,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 // DivisionPrecision is the number of decimal places in the result when it
@@ -85,7 +86,10 @@ var fiveInt = big.NewInt(5)
 var tenInt = big.NewInt(10)
 var twentyInt = big.NewInt(20)
 
-var factorials = []Decimal{New(1, 0)}
+var (
+	factorialsMu sync.RWMutex
+	factorials   = []Decimal{New(1, 0)}
+)
 
 // RoundRule is enum type for specifying rounding algorithm when decimal number
 // is scaled with loss of precision. List of supported rounding rules are listed
@@ -1114,17 +1118,7 @@ func (d Decimal) ExpTaylor(precision int32) (Decimal, error) {
 
 		i++
 
-		// Calculate next factorial number or retrieve cached value
-		if len(factorials) >= int(i) && !factorials[i-1].IsZero() {
-			factorial = factorials[i-1]
-		} else {
-			// To avoid any race conditions, firstly the zero value is appended to a slice to create
-			// a spot for newly calculated factorial. After that, the zero value is replaced by calculated
-			// factorial using the index notation.
-			factorial = factorials[i-2].Mul(New(i, 0))
-			factorials = append(factorials, Zero)
-			factorials[i-1] = factorial
-		}
+		factorial = safeFactorial(i)
 	}
 
 	if d.Sign() < 0 {
@@ -2030,6 +2024,24 @@ func RescalePair(d1 Decimal, d2 Decimal) (Decimal, Decimal) {
 	}
 
 	return d1, d2
+}
+
+// safeFactorial calculates the factorial of a given number and caches the result.
+func safeFactorial(i int64) Decimal {
+	factorialsMu.RLock()
+	if len(factorials) >= int(i) && !factorials[i-1].IsZero() {
+		factorialsMu.RUnlock()
+		return factorials[i-1]
+	}
+	factorialsMu.RUnlock()
+
+	factorialsMu.Lock()
+	factorial := factorials[i-2].Mul(New(i, 0))
+	factorials = append(factorials, Zero)
+	factorials[i-1] = factorial
+	factorialsMu.Unlock()
+
+	return factorial
 }
 
 func unquoteIfQuoted(value interface{}) (string, error) {

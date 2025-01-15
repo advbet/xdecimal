@@ -2853,15 +2853,19 @@ func TestDecimal_Pow(t *testing.T) {
 		{"-3.0", "-6.0", "0.0013717421124829"},
 		{"-13.757", "-5.0", "-0.000002029463821"},
 	} {
-		base, _ := NewFromString(testCase.Base)
-		exp, _ := NewFromString(testCase.Exponent)
-		expected, _ := NewFromString(testCase.Expected)
+		t.Run(fmt.Sprintf("%s^%s", testCase.Base, testCase.Exponent), func(t *testing.T) {
+			t.Parallel()
 
-		result := base.Pow(exp)
+			base, _ := NewFromString(testCase.Base)
+			exp, _ := NewFromString(testCase.Exponent)
+			expected, _ := NewFromString(testCase.Expected)
 
-		if result.Cmp(expected) != 0 {
-			t.Errorf("expected %s, got %s, for %s^%s", testCase.Expected, result.String(), testCase.Base, testCase.Exponent)
-		}
+			result := base.Pow(exp)
+
+			if result.Cmp(expected) != 0 {
+				t.Errorf("expected %s, got %s, for %s^%s", testCase.Expected, result.String(), testCase.Base, testCase.Exponent)
+			}
+		})
 	}
 }
 
