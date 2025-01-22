@@ -2030,8 +2030,10 @@ func RescalePair(d1 Decimal, d2 Decimal) (Decimal, Decimal) {
 func safeFactorial(i int64) Decimal {
 	factorialsMu.RLock()
 	if len(factorials) >= int(i) && !factorials[i-1].IsZero() {
+		factorial := factorials[i-1]
 		factorialsMu.RUnlock()
-		return factorials[i-1]
+
+		return factorial
 	}
 	factorialsMu.RUnlock()
 
