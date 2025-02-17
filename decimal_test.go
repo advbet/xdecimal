@@ -250,6 +250,14 @@ func TestNewFromString(t *testing.T) {
 	}
 }
 
+func TestDecimal_StringTrimZeros(t *testing.T) {
+	val := RequireFromString("123.4500").StringTrimZeros()
+	t.Log(val)
+	if val != "123.45" {
+		t.Errorf("expected 123.45, got %s", val)
+	}
+}
+
 func TestNewFromFormattedString(t *testing.T) {
 	for _, testCase := range []struct {
 		Formatted string

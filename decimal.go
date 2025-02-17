@@ -1472,12 +1472,12 @@ func (d Decimal) String() string {
 //
 // Example:
 //
-//	d := New(-12345, -3)
-//	println(d.String())
+//	d := RequireFromString("1234.4500")
+//	println(d.StringTrimZeros())
 //
 // Output:
 //
-//	-12.345
+//	1234.45
 func (d Decimal) StringTrimZeros() string {
 	return d.string(true)
 }
