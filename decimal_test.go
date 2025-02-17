@@ -110,6 +110,7 @@ func init() {
 
 func TestMain(m *testing.M) {
 	// Left for test backwards compatibility
+	// FIXME: Rewrite tests to match the default behaviour.
 	TrimTrailingZeroes = true
 	os.Exit(m.Run())
 }
@@ -252,7 +253,6 @@ func TestNewFromString(t *testing.T) {
 
 func TestDecimal_StringTrimZeros(t *testing.T) {
 	val := RequireFromString("123.4500").StringTrimZeros()
-	t.Log(val)
 	if val != "123.45" {
 		t.Errorf("expected 123.45, got %s", val)
 	}
