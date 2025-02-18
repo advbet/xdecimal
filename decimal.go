@@ -1771,15 +1771,15 @@ func (d *Decimal) UnmarshalJSON(decimalBytes []byte) error {
 		return nil
 	}
 
-	str, err := unquoteIfQuoted(decimalBytes)
-	if err != nil {
-		return fmt.Errorf("error decoding string '%s': %s", decimalBytes, err)
+	// If the amount is quoted, strip the quotes
+	if len(decimalBytes) > 2 && decimalBytes[0] == '"' && decimalBytes[len(decimalBytes)-1] == '"' {
+		decimalBytes = decimalBytes[1 : len(decimalBytes)-1]
 	}
 
-	decimal, err := NewFromString(str)
+	decimal, err := NewFromString(string(decimalBytes))
 	*d = decimal
 	if err != nil {
-		return fmt.Errorf("error decoding string '%s': %s", str, err)
+		return fmt.Errorf("error decoding string '%s': %s", string(decimalBytes), err)
 	}
 	return nil
 }
@@ -1853,14 +1853,26 @@ func (d *Decimal) Scan(value interface{}) error {
 		*d = New(v, 0)
 		return nil
 
-	default:
-		// default is trying to interpret value stored as string
-		str, err := unquoteIfQuoted(v)
-		if err != nil {
-			return err
+	case string:
+		// If the amount is quoted, strip the quotes
+		if len(v) > 2 && v[0] == '"' && v[len(v)-1] == '"' {
+			v = v[1 : len(v)-1]
 		}
-		*d, err = NewFromString(str)
+		var err error
+		*d, err = NewFromString(v)
 		return err
+
+	case []byte:
+		// If the amount is quoted, strip the quotes
+		if len(v) > 2 && v[0] == '"' && v[len(v)-1] == '"' {
+			v = v[1 : len(v)-1]
+		}
+		var err error
+		*d, err = NewFromString(string(v))
+		return err
+
+	default:
+		return fmt.Errorf("could not convert value '%+v' to byte array of type '%T'", v, v)
 	}
 }
 
@@ -2040,26 +2052,6 @@ func safeFactorial(i int64) Decimal {
 	factorials[i-1] = factorial
 
 	return factorial
-}
-
-func unquoteIfQuoted(value interface{}) (string, error) {
-	var bytes []byte
-
-	switch v := value.(type) {
-	case string:
-		bytes = []byte(v)
-	case []byte:
-		bytes = v
-	default:
-		return "", fmt.Errorf("could not convert value '%+v' to byte array of type '%T'",
-			value, value)
-	}
-
-	// If the amount is quoted, strip the quotes
-	if len(bytes) > 2 && bytes[0] == '"' && bytes[len(bytes)-1] == '"' {
-		bytes = bytes[1 : len(bytes)-1]
-	}
-	return string(bytes), nil
 }
 
 // NullDecimal represents a nullable decimal with compatibility for
