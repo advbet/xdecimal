@@ -1317,11 +1317,6 @@ func (d Decimal) Equal(d2 Decimal) bool {
 	return d.Cmp(d2) == 0
 }
 
-// Equals is deprecated, please use Equal method instead
-func (d Decimal) Equals(d2 Decimal) bool {
-	return d.Equal(d2)
-}
-
 // GreaterThan (GT) returns true when d is greater than d2.
 func (d Decimal) GreaterThan(d2 Decimal) bool {
 	return d.Cmp(d2) == 1
@@ -1902,12 +1897,6 @@ func (d Decimal) GobEncode() ([]byte, error) {
 // GobDecode implements the gob.GobDecoder interface for gob serialization.
 func (d *Decimal) GobDecode(data []byte) error {
 	return d.UnmarshalBinary(data)
-}
-
-// StringScaled first scales the decimal then calls .String() on it.
-// NOTE: buggy, unintuitive, and DEPRECATED! Use StringFixed instead.
-func (d Decimal) StringScaled(exp int32) string {
-	return d.rescale(exp).String()
 }
 
 func (d Decimal) string(trimTrailingZeros bool) string {
