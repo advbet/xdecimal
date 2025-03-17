@@ -1771,10 +1771,7 @@ func (d *Decimal) UnmarshalJSON(decimalBytes []byte) error {
 		return nil
 	}
 
-	// If the amount is quoted, strip the quotes
-	if len(decimalBytes) > 2 && decimalBytes[0] == '"' && decimalBytes[len(decimalBytes)-1] == '"' {
-		decimalBytes = decimalBytes[1 : len(decimalBytes)-1]
-	}
+	decimalBytes = unquoteIfQuoted(decimalBytes)
 
 	decimal, err := NewFromString(string(decimalBytes))
 	*d = decimal
@@ -1782,6 +1779,14 @@ func (d *Decimal) UnmarshalJSON(decimalBytes []byte) error {
 		return fmt.Errorf("error decoding string '%s': %s", string(decimalBytes), err)
 	}
 	return nil
+}
+
+func unquoteIfQuoted[T ~string | ~[]byte](v T) T {
+	// If the amount is quoted, strip the quotes
+	if len(v) > 2 && v[0] == '"' && v[len(v)-1] == '"' {
+		return v[1 : len(v)-1]
+	}
+	return v
 }
 
 // MarshalJSON implements the json.Marshaler interface.
@@ -1854,19 +1859,13 @@ func (d *Decimal) Scan(value interface{}) error {
 		return nil
 
 	case string:
-		// If the amount is quoted, strip the quotes
-		if len(v) > 2 && v[0] == '"' && v[len(v)-1] == '"' {
-			v = v[1 : len(v)-1]
-		}
+		v = unquoteIfQuoted(v)
 		var err error
 		*d, err = NewFromString(v)
 		return err
 
 	case []byte:
-		// If the amount is quoted, strip the quotes
-		if len(v) > 2 && v[0] == '"' && v[len(v)-1] == '"' {
-			v = v[1 : len(v)-1]
-		}
+		v = unquoteIfQuoted(v)
 		var err error
 		*d, err = NewFromString(string(v))
 		return err
