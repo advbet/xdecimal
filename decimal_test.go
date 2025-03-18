@@ -251,6 +251,43 @@ func TestNewFromString(t *testing.T) {
 	}
 }
 
+func TestNewFromByteString(t *testing.T) {
+	for _, x := range testTable {
+		s := x.short
+		d, err := NewFromByteString([]byte(s))
+		if err != nil {
+			t.Errorf("error while parsing %s", s)
+		} else if d.String() != s {
+			t.Errorf("expected %s, got %s (%s, %d)",
+				s, d.String(),
+				d.value.String(), d.exp)
+		}
+	}
+
+	for _, x := range testTable {
+		s := x.exact
+		d, err := NewFromByteString([]byte(s))
+		if err != nil {
+			t.Errorf("error while parsing %s", s)
+		} else if d.String() != s {
+			t.Errorf("expected %s, got %s (%s, %d)",
+				s, d.String(),
+				d.value.String(), d.exp)
+		}
+	}
+
+	for e, s := range testTableScientificNotation {
+		d, err := NewFromByteString([]byte(s))
+		if err != nil {
+			t.Errorf("error while parsing %s", e)
+		} else if d.String() != s {
+			t.Errorf("expected %s, got %s (%s, %d)",
+				s, d.String(),
+				d.value.String(), d.exp)
+		}
+	}
+}
+
 func TestDecimal_StringTrimZeros(t *testing.T) {
 	val := RequireFromString("123.4500").StringTrimZeros()
 	if val != "123.45" {
