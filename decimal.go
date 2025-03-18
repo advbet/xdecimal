@@ -1771,17 +1771,22 @@ func (d *Decimal) UnmarshalJSON(decimalBytes []byte) error {
 		return nil
 	}
 
-	str, err := unquoteIfQuoted(decimalBytes)
-	if err != nil {
-		return fmt.Errorf("error decoding string '%s': %s", decimalBytes, err)
-	}
+	decimalBytes = unquoteIfQuoted(decimalBytes)
 
-	decimal, err := NewFromString(str)
+	decimal, err := NewFromString(string(decimalBytes))
 	*d = decimal
 	if err != nil {
-		return fmt.Errorf("error decoding string '%s': %s", str, err)
+		return fmt.Errorf("error decoding string '%s': %s", string(decimalBytes), err)
 	}
 	return nil
+}
+
+func unquoteIfQuoted[T ~string | ~[]byte](v T) T {
+	// If the amount is quoted, strip the quotes
+	if len(v) > 2 && v[0] == '"' && v[len(v)-1] == '"' {
+		return v[1 : len(v)-1]
+	}
+	return v
 }
 
 // MarshalJSON implements the json.Marshaler interface.
@@ -1853,14 +1858,20 @@ func (d *Decimal) Scan(value interface{}) error {
 		*d = New(v, 0)
 		return nil
 
-	default:
-		// default is trying to interpret value stored as string
-		str, err := unquoteIfQuoted(v)
-		if err != nil {
-			return err
-		}
-		*d, err = NewFromString(str)
+	case string:
+		v = unquoteIfQuoted(v)
+		var err error
+		*d, err = NewFromString(v)
 		return err
+
+	case []byte:
+		v = unquoteIfQuoted(v)
+		var err error
+		*d, err = NewFromString(string(v))
+		return err
+
+	default:
+		return fmt.Errorf("could not convert value '%+v' of type '%T'", v, v)
 	}
 }
 
@@ -2040,26 +2051,6 @@ func safeFactorial(i int64) Decimal {
 	factorials[i-1] = factorial
 
 	return factorial
-}
-
-func unquoteIfQuoted(value interface{}) (string, error) {
-	var bytes []byte
-
-	switch v := value.(type) {
-	case string:
-		bytes = []byte(v)
-	case []byte:
-		bytes = v
-	default:
-		return "", fmt.Errorf("could not convert value '%+v' to byte array of type '%T'",
-			value, value)
-	}
-
-	// If the amount is quoted, strip the quotes
-	if len(bytes) > 2 && bytes[0] == '"' && bytes[len(bytes)-1] == '"' {
-		bytes = bytes[1 : len(bytes)-1]
-	}
-	return string(bytes), nil
 }
 
 // NullDecimal represents a nullable decimal with compatibility for
