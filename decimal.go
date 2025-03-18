@@ -1871,7 +1871,7 @@ func (d *Decimal) Scan(value interface{}) error {
 		return err
 
 	default:
-		return fmt.Errorf("could not convert value '%+v' to byte array of type '%T'", v, v)
+		return fmt.Errorf("could not convert value '%+v' of type '%T'", v, v)
 	}
 }
 
