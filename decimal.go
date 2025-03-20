@@ -17,7 +17,6 @@
 package xdecimal
 
 import (
-	"bytes"
 	"database/sql/driver"
 	"encoding/binary"
 	"fmt"
@@ -193,9 +192,23 @@ func NewFromByteString(valueBytes []byte) (Decimal, error) {
 	var intBytes []byte
 	var exp int64
 
-	// Check if number is using scientific notation
-	eIndex := bytes.IndexAny(value, "Ee")
-	if eIndex != -1 {
+	eIndex := -1
+	pIndex := -1
+	// Scan for dots and/or scientific notation.
+	for i := 0; i < len(value); i++ {
+		if value[i] == '.' {
+			if pIndex > -1 {
+				return Decimal{}, fmt.Errorf("can't convert %s to decimal: too many .s", value)
+			}
+			pIndex = i
+		} else if value[i] == 'E' || value[i] == 'e' {
+			eIndex = i
+			// We can stop scanning the slice as scientific notation parsing will catch any malformed value.
+			break
+		}
+	}
+
+	if eIndex != -1 { // Parse scientific notation.
 		expInt, err := strconv.ParseInt(string(value[eIndex+1:]), 10, 32)
 		if err != nil {
 			if e, ok := err.(*strconv.NumError); ok && e.Err == strconv.ErrRange {
@@ -207,23 +220,12 @@ func NewFromByteString(valueBytes []byte) (Decimal, error) {
 		exp = expInt
 	}
 
-	pIndex := -1
-	vLen := len(value)
-	for i := 0; i < vLen; i++ {
-		if value[i] == '.' {
-			if pIndex > -1 {
-				return Decimal{}, fmt.Errorf("can't convert %s to decimal: too many .s", value)
-			}
-			pIndex = i
-		}
-	}
-
 	if pIndex == -1 {
 		// There is no decimal point, we can just parse the original string as
 		// an int
 		intBytes = value
 	} else {
-		if pIndex+1 < vLen {
+		if pIndex+1 < len(value) {
 			intBytes = append(value[:pIndex], value[pIndex+1:]...)
 		} else {
 			intBytes = value[:pIndex]
@@ -233,7 +235,6 @@ func NewFromByteString(valueBytes []byte) (Decimal, error) {
 	}
 
 	var dValue *big.Int
-	// strconv.ParseInt is faster than new(big.Int).SetString so this is just a shortcut for strings we know won't overflow
 	if len(intBytes) <= 18 {
 		parsed64, err := strconv.ParseInt(string(intBytes), 10, 64)
 		if err != nil {
@@ -272,9 +273,23 @@ func NewFromString(value string) (Decimal, error) {
 	var intString string
 	var exp int64
 
-	// Check if number is using scientific notation
-	eIndex := strings.IndexAny(value, "Ee")
-	if eIndex != -1 {
+	eIndex := -1
+	pIndex := -1
+	// Scan for dots and/or scientific notation.
+	for i := 0; i < len(value); i++ {
+		if value[i] == '.' {
+			if pIndex > -1 {
+				return Decimal{}, fmt.Errorf("can't convert %s to decimal: too many .s", value)
+			}
+			pIndex = i
+		} else if value[i] == 'E' || value[i] == 'e' {
+			eIndex = i
+			// We can stop scanning the string as scientific notation parsing will catch any malformed value.
+			break
+		}
+	}
+
+	if eIndex != -1 { // Parse scientific notation.
 		expInt, err := strconv.ParseInt(value[eIndex+1:], 10, 32)
 		if err != nil {
 			if e, ok := err.(*strconv.NumError); ok && e.Err == strconv.ErrRange {
@@ -286,23 +301,12 @@ func NewFromString(value string) (Decimal, error) {
 		exp = expInt
 	}
 
-	pIndex := -1
-	vLen := len(value)
-	for i := 0; i < vLen; i++ {
-		if value[i] == '.' {
-			if pIndex > -1 {
-				return Decimal{}, fmt.Errorf("can't convert %s to decimal: too many .s", value)
-			}
-			pIndex = i
-		}
-	}
-
 	if pIndex == -1 {
 		// There is no decimal point, we can just parse the original string as
 		// an int
 		intString = value
 	} else {
-		if pIndex+1 < vLen {
+		if pIndex+1 < len(value) {
 			intString = value[:pIndex] + value[pIndex+1:]
 		} else {
 			intString = value[:pIndex]
