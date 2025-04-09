@@ -126,7 +126,7 @@ func New(value int64, exp int32) Decimal {
 	}
 }
 
-// NewFromInt converts a int64 to Decimal.
+// NewFromInt converts an int64 to Decimal.
 //
 // Example:
 //
@@ -139,7 +139,7 @@ func NewFromInt(value int64) Decimal {
 	}
 }
 
-// NewFromInt32 converts a int32 to Decimal.
+// NewFromInt32 converts an int32 to Decimal.
 //
 // Example:
 //
@@ -178,6 +178,88 @@ func NewFromRat(r *big.Rat, e int) Decimal {
 	return NewFromBigInt(r.Num(), 0).Div(NewFromBigInt(r.Denom(), 0)).Round(e, RoundTruncate)
 }
 
+// NewFromByteString returns a new Decimal from a []byte representation of a string.
+// Trailing zeroes are not trimmed.
+//
+// Example:
+//
+//	d, err := NewFromByteString([]byte("-123.45"))
+//	d2, err := NewFromByteString([]byte(".0001"))
+//	d3, err := NewFromByteString([]byte("1.47000"))
+func NewFromByteString(valueBytes []byte) (Decimal, error) {
+	value := make([]byte, len(valueBytes))
+	copy(value, valueBytes) // Copy bytes to preserve original byte slice.
+	var intBytes []byte
+	var exp int64
+
+	eIndex := -1
+	pIndex := -1
+	// Scan for dots and/or scientific notation.
+	for i := 0; i < len(value); i++ {
+		if value[i] == '.' {
+			if pIndex > -1 {
+				return Decimal{}, fmt.Errorf("can't convert %s to decimal: too many .s", value)
+			}
+			pIndex = i
+		} else if value[i] == 'E' || value[i] == 'e' {
+			eIndex = i
+			// We can stop scanning the slice as scientific notation parsing will catch any malformed value.
+			break
+		}
+	}
+
+	if eIndex != -1 { // Parse scientific notation.
+		expInt, err := strconv.ParseInt(string(value[eIndex+1:]), 10, 32)
+		if err != nil {
+			if e, ok := err.(*strconv.NumError); ok && e.Err == strconv.ErrRange {
+				return Decimal{}, fmt.Errorf("can't convert %s to decimal: fractional part too long", value)
+			}
+			return Decimal{}, fmt.Errorf("can't convert %s to decimal: exponent is not numeric", value)
+		}
+		value = value[:eIndex]
+		exp = expInt
+	}
+
+	if pIndex == -1 {
+		// There is no decimal point, we can just parse the original string as
+		// an int
+		intBytes = value
+	} else {
+		if pIndex+1 < len(value) {
+			intBytes = append(value[:pIndex], value[pIndex+1:]...)
+		} else {
+			intBytes = value[:pIndex]
+		}
+		expInt := -len(value[pIndex+1:])
+		exp += int64(expInt)
+	}
+
+	var dValue *big.Int
+	if len(intBytes) <= 18 {
+		parsed64, err := strconv.ParseInt(string(intBytes), 10, 64)
+		if err != nil {
+			return Decimal{}, fmt.Errorf("can't convert %s to decimal", value)
+		}
+		dValue = big.NewInt(parsed64)
+	} else {
+		dValue = new(big.Int)
+		_, ok := dValue.SetString(string(intBytes), 10)
+		if !ok {
+			return Decimal{}, fmt.Errorf("can't convert %s to decimal", value)
+		}
+	}
+
+	if exp < math.MinInt32 || exp > math.MaxInt32 {
+		// NOTE(vadim): I doubt a string could realistically be this long
+		return Decimal{}, fmt.Errorf("can't convert %s to decimal: fractional part too long", string(valueBytes))
+	}
+
+	return Decimal{
+		value: dValue,
+		exp:   int32(exp),
+	}, nil
+}
+
 // NewFromString returns a new Decimal from a string representation.
 // Trailing zeroes are not trimmed.
 //
@@ -191,9 +273,23 @@ func NewFromString(value string) (Decimal, error) {
 	var intString string
 	var exp int64
 
-	// Check if number is using scientific notation
-	eIndex := strings.IndexAny(value, "Ee")
-	if eIndex != -1 {
+	eIndex := -1
+	pIndex := -1
+	// Scan for dots and/or scientific notation.
+	for i := 0; i < len(value); i++ {
+		if value[i] == '.' {
+			if pIndex > -1 {
+				return Decimal{}, fmt.Errorf("can't convert %s to decimal: too many .s", value)
+			}
+			pIndex = i
+		} else if value[i] == 'E' || value[i] == 'e' {
+			eIndex = i
+			// We can stop scanning the string as scientific notation parsing will catch any malformed value.
+			break
+		}
+	}
+
+	if eIndex != -1 { // Parse scientific notation.
 		expInt, err := strconv.ParseInt(value[eIndex+1:], 10, 32)
 		if err != nil {
 			if e, ok := err.(*strconv.NumError); ok && e.Err == strconv.ErrRange {
@@ -205,23 +301,12 @@ func NewFromString(value string) (Decimal, error) {
 		exp = expInt
 	}
 
-	pIndex := -1
-	vLen := len(value)
-	for i := 0; i < vLen; i++ {
-		if value[i] == '.' {
-			if pIndex > -1 {
-				return Decimal{}, fmt.Errorf("can't convert %s to decimal: too many .s", value)
-			}
-			pIndex = i
-		}
-	}
-
 	if pIndex == -1 {
 		// There is no decimal point, we can just parse the original string as
 		// an int
 		intString = value
 	} else {
-		if pIndex+1 < vLen {
+		if pIndex+1 < len(value) {
 			intString = value[:pIndex] + value[pIndex+1:]
 		} else {
 			intString = value[:pIndex]
@@ -1773,7 +1858,7 @@ func (d *Decimal) UnmarshalJSON(decimalBytes []byte) error {
 
 	decimalBytes = unquoteIfQuoted(decimalBytes)
 
-	decimal, err := NewFromString(string(decimalBytes))
+	decimal, err := NewFromByteString(decimalBytes)
 	*d = decimal
 	if err != nil {
 		return fmt.Errorf("error decoding string '%s': %s", string(decimalBytes), err)
@@ -1867,7 +1952,7 @@ func (d *Decimal) Scan(value interface{}) error {
 	case []byte:
 		v = unquoteIfQuoted(v)
 		var err error
-		*d, err = NewFromString(string(v))
+		*d, err = NewFromByteString(v)
 		return err
 
 	default:
