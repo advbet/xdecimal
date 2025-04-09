@@ -183,7 +183,7 @@ func NewFromRat(r *big.Rat, e int) Decimal {
 //
 // Example:
 //
-//	d, err := NewFromByteString([]byte("-123.45")
+//	d, err := NewFromByteString([]byte("-123.45"))
 //	d2, err := NewFromByteString([]byte(".0001"))
 //	d3, err := NewFromByteString([]byte("1.47000"))
 func NewFromByteString(valueBytes []byte) (Decimal, error) {
