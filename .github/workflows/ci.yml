@@ -1,10 +1,10 @@
-name: xdecimal-ci
+name: ci
 
 on: [push]
 
 jobs:
   golanglint:
-    runs-on: ubuntu-slim
+    runs-on: ubuntu
 
     steps:
       - uses: actions/checkout@v4
@@ -12,15 +12,15 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.63.4
+          version: v1.64.8
 
   go-test-matrix:
-    runs-on: ubuntu-slim
+    runs-on: ubuntu
 
     strategy:
       max-parallel: 2
       matrix:
-        version: ['1.19', '1.20', '1.21', '1.22']
+        version: ['1.23', '1.24', '1.25']
 
     name: Go ${{ matrix.version }}
     steps:
