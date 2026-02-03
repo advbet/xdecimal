@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   golanglint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     steps:
       - uses: actions/checkout@v4
@@ -15,7 +15,7 @@ jobs:
           version: v1.63.4
 
   go-test-matrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     strategy:
       max-parallel: 2
