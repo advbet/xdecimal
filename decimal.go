@@ -17,6 +17,7 @@
 package xdecimal
 
 import (
+	"bytes"
 	"database/sql/driver"
 	"encoding/binary"
 	"fmt"
@@ -187,14 +188,29 @@ func NewFromRat(r *big.Rat, e int) Decimal {
 //	d2, err := NewFromString(".0001")
 //	d3, err := NewFromString("1.47000")
 func NewFromString(value string) (Decimal, error) {
+	return newFromStringBytes(value)
+}
+
+// NewFromBytes returns a new Decimal from a []byte representation.
+// Trailing zeroes are not trimmed.
+// Example:
+//
+//	d, err := NewFromBytes([]byte("-123.45"))
+//	d2, err := NewFromBytes([]byte(".0001"))
+//	d3, err := NewFromBytes([]byte("1.47000"))
+func NewFromBytes(value []byte) (Decimal, error) {
+	return newFromStringBytes(value)
+}
+
+func newFromStringBytes[T string | []byte](value T) (Decimal, error) {
 	originalInput := value
 	var intString string
 	var exp int64
 
 	// Check if number is using scientific notation
-	eIndex := strings.IndexAny(value, "Ee")
+	eIndex := indexAny(value, "Ee")
 	if eIndex != -1 {
-		expInt, err := strconv.ParseInt(value[eIndex+1:], 10, 32)
+		expInt, err := strconv.ParseInt(string(value[eIndex+1:]), 10, 32)
 		if err != nil {
 			if e, ok := err.(*strconv.NumError); ok && e.Err == strconv.ErrRange {
 				return Decimal{}, fmt.Errorf("can't convert %s to decimal: fractional part too long", value)
@@ -219,12 +235,12 @@ func NewFromString(value string) (Decimal, error) {
 	if pIndex == -1 {
 		// There is no decimal point, we can just parse the original string as
 		// an int
-		intString = value
+		intString = string(value)
 	} else {
 		if pIndex+1 < vLen {
-			intString = value[:pIndex] + value[pIndex+1:]
+			intString = toDigitString(value, pIndex)
 		} else {
-			intString = value[:pIndex]
+			intString = string(value[:pIndex])
 		}
 		expInt := -len(value[pIndex+1:])
 		exp += int64(expInt)
@@ -255,6 +271,30 @@ func NewFromString(value string) (Decimal, error) {
 		value: dValue,
 		exp:   int32(exp),
 	}, nil
+}
+
+func indexAny[T string | []byte](v T, chars string) int {
+	switch s := any(v).(type) {
+	case string:
+		return strings.IndexAny(s, chars)
+	case []byte:
+		return bytes.IndexAny(s, chars)
+	}
+	return -1
+}
+
+func toDigitString[T string | []byte](v T, dot int) string {
+	switch s := any(v).(type) {
+	case string:
+		return s[:dot] + s[dot+1:]
+	case []byte:
+		var sb strings.Builder
+		sb.Grow(len(s) - 1)
+		sb.Write(s[:dot])
+		sb.Write(s[dot+1:])
+		return sb.String()
+	}
+	return ""
 }
 
 // NewFromFormattedString returns a new Decimal from a formatted string representation.
@@ -1773,10 +1813,10 @@ func (d *Decimal) UnmarshalJSON(decimalBytes []byte) error {
 
 	decimalBytes = unquoteIfQuoted(decimalBytes)
 
-	decimal, err := NewFromString(string(decimalBytes))
+	decimal, err := NewFromBytes(decimalBytes)
 	*d = decimal
 	if err != nil {
-		return fmt.Errorf("error decoding string '%s': %s", string(decimalBytes), err)
+		return fmt.Errorf("error decoding string '%s': %s", decimalBytes, err)
 	}
 	return nil
 }
@@ -1867,7 +1907,7 @@ func (d *Decimal) Scan(value interface{}) error {
 	case []byte:
 		v = unquoteIfQuoted(v)
 		var err error
-		*d, err = NewFromString(string(v))
+		*d, err = NewFromBytes(v)
 		return err
 
 	default:
@@ -1883,12 +1923,10 @@ func (d Decimal) Value() (driver.Value, error) {
 // UnmarshalText implements the encoding.TextUnmarshaler interface for XML
 // deserialization.
 func (d *Decimal) UnmarshalText(text []byte) error {
-	str := string(text)
-
-	dec, err := NewFromString(str)
+	dec, err := NewFromBytes(text)
 	*d = dec
 	if err != nil {
-		return fmt.Errorf("error decoding string '%s': %s", str, err)
+		return fmt.Errorf("error decoding string '%s': %s", text, err)
 	}
 
 	return nil
