@@ -225,6 +225,46 @@ func BenchmarkDecimal_NewFromString_large_number(b *testing.B) {
 	}
 }
 
+func BenchmarkDecimal_NewFromBytes(b *testing.B) {
+	count := 72
+	prices := make([][]byte, 0, count)
+	for i := 1; i <= count; i++ {
+		prices = append(prices, []byte(fmt.Sprintf("%d.%d", i*100, i)))
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for _, p := range prices {
+			d, err := NewFromBytes(p)
+			if err != nil {
+				b.Log(d)
+				b.Error(err)
+			}
+		}
+	}
+}
+
+func BenchmarkDecimal_NewFromBytes_large_number(b *testing.B) {
+	count := 72
+	prices := make([][]byte, 0, count)
+	for i := 1; i <= count; i++ {
+		prices = append(prices, []byte("9323372036854775807.9223372036854775807"))
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for _, p := range prices {
+			d, err := NewFromBytes(p)
+			if err != nil {
+				b.Log(d)
+				b.Error(err)
+			}
+		}
+	}
+}
+
 func BenchmarkDecimal_ExpHullAbraham(b *testing.B) {
 	b.ResetTimer()
 
