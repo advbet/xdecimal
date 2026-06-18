@@ -617,7 +617,7 @@ func (d Decimal) Shift(shift int32) Decimal {
 	}
 }
 
-// Div returns d / d2. If it doesn't divide exactly, the result will have
+// Div returns d / d2. The result will have
 // DivisionPrecision digits after the decimal point.
 func (d Decimal) Div(d2 Decimal) Decimal {
 	return d.DivRound(d2, int32(DivisionPrecision))
